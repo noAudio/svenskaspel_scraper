@@ -65,7 +65,7 @@ class Scraper:
                 if len(oddsElements) == 3:
                     for elem in oddsElements:
                         textJsonValue: JSHandle = await elem.getProperty('textContent')
-                        text = await textJsonValue.jsonValue()
+                        text: str = await textJsonValue.jsonValue()
                         odds.append(text)
                 if len(odds) == 3:
                     odds1 = odds[0]
