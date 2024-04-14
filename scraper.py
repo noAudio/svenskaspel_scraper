@@ -21,8 +21,7 @@ class Scraper:
             self.link = link
 
     async def browserSetup(self) -> None:
-        # TODO: Set to headless
-        self.browser: Browser = await pyppeteer.launch(headless=False)
+        self.browser: Browser = await pyppeteer.launch(headless=True)
         self.page: Page = await self.browser.newPage()
 
     async def browserDisposal(self) -> None:
