@@ -18,6 +18,7 @@ async def main() -> None:
 if __name__ == '__main__':
     import os
     os.environ['PYPPETEER_CHROMIUM_REVISION'] = '1263111'
+    os.environ['PYPPETEER_HOME'] = '/tmp/'
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
