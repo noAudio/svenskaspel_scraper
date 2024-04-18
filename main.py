@@ -9,7 +9,7 @@ async def main() -> None:
     scraper: Scraper = Scraper(link=link)
     await scraper.getGameDetails()
 
-    if scraper.matches['svenskaspel']['match']:
+    if len(scraper.matches['svenskaspel']['match']) > 0:
         import xmltodict
         xmldata = xmltodict.unparse(scraper.matches, pretty=True)
 
