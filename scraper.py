@@ -74,6 +74,9 @@ class Scraper:
             if desiredElement:
                 await contentFrame.evaluate('(element) => element.click()', desiredElement)
                 await self.page.waitForNavigation()
+            else:
+                print('→ Unable to find the page for the provided link.')
+                return
 
             sleep(5)
             gameScoreElement: ElementHandle | None = None
