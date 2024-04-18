@@ -4,8 +4,10 @@ from scraper import Scraper
 
 
 async def main() -> None:
-    scraper: Scraper = Scraper('')
-    await scraper.getData()
+    # INFO: Add link here
+    link: str = ''
+    scraper: Scraper = Scraper(link=link)
+    await scraper.getGameDetails()
 
     if scraper.matches['svenskaspel']['match']:
         import xmltodict

@@ -7,7 +7,7 @@ from pyppeteer.execution_context import JSHandle
 
 
 class Scraper:
-    link: str = 'https://spela.svenskaspel.se/odds/sports/ishockey/sverige-hockeyallsvenskan'
+    link: str = ''
     matches: Dict[str, Dict[str, List[Dict[str, Dict[str, str]]]]] = {
         'svenskaspel': {
             'match': [],
@@ -15,24 +15,88 @@ class Scraper:
     }
 
     def __init__(self, link: str) -> None:
-        # Set link to one provided by user
-        # if available
-        if link != '':
-            self.link = link
+        self.link = link
 
     async def browserSetup(self) -> None:
         self.browser: Browser = await pyppeteer.launch(headless=True)
         self.page: Page = await self.browser.newPage()
 
     async def browserDisposal(self) -> None:
+        print('→ Closing browser.')
         await self.browser.close()
 
-    async def getData(self) -> None:
+    async def getGameDetails(self) -> None:
+        if self.link == '':
+            # break execution when a link
+            # isn't given
+            print('→ A link was not provided, aborting.')
+            return
+
         await self.browserSetup()
+        print('→ Successfully launched browser.')
         await self.page.goto(url=self.link)
 
         acceptCookieButton: ElementHandle | None = await self.page.querySelector('#onetrust-accept-btn-handler')
         if acceptCookieButton:
+            print('→ Closing cookie consent modal.')
+            await acceptCookieButton.click()
+
+        # wait for elements to load
+        await self.page.waitForSelector('.rj-market', {'timeout': 60000})
+        # target first score element
+        gameScoreElement: ElementHandle | None = self.page.querySelector(
+            '.rj-market')
+
+        hometeam: str = ''
+        awayteam: str = ''
+        odds1: str = ''
+        oddsx: str = ''
+        odds2: str = ''
+
+        # get team names
+        teamNames: List[str] = []
+        teamNameElements: List[ElementHandle] = await gameScoreElement.querySelectorAll('.rj-market__button-title')
+        for elem in teamNameElements:
+            textJsonValue: JSHandle = await elem.getProperty('textContent')
+            text: str = await textJsonValue.jsonValue()
+            teamNames.append(text)
+        if len(teamNames) == 3:
+            hometeam = teamNames[0]
+            awayteam = teamNames[2]
+
+        # get odds
+        odds: List[str] = []
+        oddsElements: List[ElementHandle] = await gameScoreElement.querySelectorAll('.rj-market__button-odds')
+        for elem in oddsElements:
+            textJsonValue: JSHandle = await elem.getProperty('textContent')
+            text: str = await textJsonValue.jsonValue()
+            odds.append(text)
+        if len(odds) == 3:
+            odds1 = odds[0]
+            oddsx = odds[1]
+            odds2 = odds[2]
+
+        self.matches['svenskaspel']['match'].append({
+            'teams': {
+                'hometeam': hometeam,
+                'awayteam': awayteam,
+            },
+            'odds': {
+                'odds1': odds1,
+                'oddsx': oddsx,
+                'odds2': odds2,
+            },
+        })
+
+    # WARN: Deprecated
+    async def getData(self) -> None:
+        await self.browserSetup()
+        print('→ Successfully launched browser.')
+        await self.page.goto(url=self.link)
+
+        acceptCookieButton: ElementHandle | None = await self.page.querySelector('#onetrust-accept-btn-handler')
+        if acceptCookieButton:
+            print('→ Closing cookie consent modal.')
             await acceptCookieButton.click()
 
         # Target iframe holding the data
@@ -42,8 +106,11 @@ class Scraper:
             contentFrame = await iframe.contentFrame()
 
         if contentFrame:
+            await contentFrame.waitForSelector('.rj-ev-list__ev-card', {'timeout': 60000})
             self.listingElements: List[ElementHandle] = await contentFrame.querySelectorAll('.rj-ev-list__ev-card')
+            print('→ Found data iframe element.')
         if self.listingElements.__len__() > 0:
+            print(f'→ Found {len(self.listingElements)} matches.')
             for match in self.listingElements:
                 hometeamElement: ElementHandle | None = await match.querySelector('.rj-ev-list__ev-card__team-1-name')
                 hometeam: str = ''
@@ -83,5 +150,8 @@ class Scraper:
                         'odds2': odds2,
                     },
                 })
+        else:
+            print('→ No matches were found.')
+            await self.page.screenshot({'path': 'screenshot.png'})
 
         await self.browserDisposal()
